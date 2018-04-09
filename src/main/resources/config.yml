@@ -1,0 +1,17 @@
+logging:
+  level: INFO
+  loggers:
+    io.sattler: DEBUG
+server:
+  type: simple
+  applicationContextPath: /
+  adminContextPath: /admin
+  connector:
+    type: http
+    port: 9000
+database:
+  driverClass: org.postgresql.Driver
+  user: ${DIONYSUS_SERVICE_POSTGRES_USER}
+  password: ${DIONYSUS_SERVICE_POSTGRES_PASSWORD}
+  url: jdbc:postgresql://${DIONYSUS_SERVICE_POSTGRES_HOST}:${DIONYSUS_SERVICE_POSTGRES_PORT}/${DIONYSUS_SERVICE_POSTGRES_DB}
+  validationQuery: "/* MyService Health Check */ SELECT 1"
