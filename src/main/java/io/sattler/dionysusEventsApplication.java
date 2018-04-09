@@ -12,6 +12,7 @@ import io.dropwizard.migrations.MigrationsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.sattler.db.EventDAO;
+import io.sattler.resources.EventResource;
 import org.skife.jdbi.v2.DBI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,10 @@ public class dionysusEventsApplication extends Application<dionysusEventsConfigu
             final DBI jdbi = factory.build(environment, configuration.getDataSourceFactory(), "postgresql");
 
             EventDAO eventDAO = jdbi.onDemand(EventDAO.class);
+
+            EventResource event = new EventResource(eventDAO);
+
+            environment.jersey().register(event);
 
         } catch (Exception e) {
             Logger log = LoggerFactory.getLogger(dionysusEventsApplication.class);

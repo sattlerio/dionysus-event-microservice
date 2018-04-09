@@ -1,60 +1,160 @@
 package io.sattler.db;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.hibernate.validator.constraints.Length;
+import org.hibernate.validator.constraints.NotEmpty;
 import org.joda.time.DateTime;
 
-import javax.validation.constraints.NotNull;
+import javax.validation.Valid;
+import javax.validation.constraints.*;
+import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class Event {
 
-    @NotNull
-    private String companyId;
-
-    @NotNull
     private Long id;
-    @NotNull
+
+    @JsonProperty("event_id")
     private String eventId;
 
-    @NotNull
+    @NotEmpty
+    @JsonProperty("event_name")
     private String eventName;
 
-    @NotNull
+    @NotEmpty
+    @JsonProperty("company_id")
+    private String companyId;
+
+    @NotEmpty
+    @JsonProperty("street_number")
     private String streetNumber;
 
-    @NotNull
+    @NotEmpty
+    @JsonProperty("street")
     private String street;
 
-    @NotNull
+    @NotEmpty
+    @JsonProperty("city")
     private String city;
 
-    @NotNull
+    @NotEmpty
+    @JsonProperty("country_id")
+    @Length(min = 2, max = 2, message = "The country ID must have only 2 characters")
     private String countryId;
 
-    @NotNull
+    @NotEmpty
+    @JsonProperty("postal_code")
     private String postalCode;
 
+    @JsonProperty("latitude")
     @NotNull
+    @Min(-90)
+    @Max(90)
     private Double latitude;
 
+    @JsonProperty("longitude")
+    @Min(-180)
+    @Max(180)
     @NotNull
     private Double longitude;
 
+    @JsonProperty("location_name")
     private String locationName;
 
+    @JsonProperty("multi_day_event")
     @NotNull
-    private boolean multiDayEvent;
+    private Boolean multiDayEvent;
 
+    @JsonProperty("start_date")
+    @Future
     private DateTime startDate;
 
+    @JsonProperty("end_date")
+    @Future
     private DateTime endDate;
 
-    @NotNull
-    private String defaultLanguage;
+    @JsonProperty("event_dates")
+    @Valid
+    private Set<EventDates> eventDates;
 
+    @JsonCreator
+    public Event() {
+        this.eventId = UUID.randomUUID().toString();
+    }
+
+    public Boolean getMultiDayEvent() {
+        return multiDayEvent;
+    }
+
+    public DateTime getStartDate() {
+        return startDate;
+    }
+
+    public DateTime getEndDate() {
+        return endDate;
+    }
+
+    public Set<EventDates> getEventDates() {
+        return eventDates;
+    }
+
+    public String getEventName() {
+        return eventName;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public String getCountryId() {
+        return countryId;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public String getLocationName() {
+        return locationName;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public String getStreetNumber() {
+        return streetNumber;
+    }
+
+    /*
     public Event(String eventName, String streetNumber, String street,
                  String city, String countryId, String postalCode, Double latitude,
                  Double longitude, String locationName, Boolean multiDayEvent,
-                 DateTime startDate, DateTime endDate) {
+                 DateTime startDate, DateTime endDate, EventDates[] eventDates,
+                 String defaultLanguage) {
 
         this.eventName = eventName;
         this.eventId = UUID.randomUUID().toString();
@@ -69,10 +169,9 @@ public class Event {
         this.multiDayEvent = multiDayEvent;
         this.startDate = startDate;
         this.endDate = endDate;
+        this.eventDates = eventDates;
+        this.defaultLanguage = defaultLanguage;
     }
-
-    public Event() {
-        this.eventId = UUID.randomUUID().toString();
-    }
+    */
 
 }
