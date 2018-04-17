@@ -57,11 +57,7 @@ public class EventResource {
 
         List<Event> events = eventDAO.getBasicEventInformationWithPermission(userId, companyId);
 
-        for (Event event : events) {
-            log.info(event.getEventId());
-        }
         return Response.status(200).entity(events).build();
-
     }
 
     @POST
