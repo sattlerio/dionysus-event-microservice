@@ -9,6 +9,7 @@ import io.sattler.client.GuardianClient;
 import io.sattler.db.Event;
 import io.sattler.db.EventDAO;
 import io.sattler.db.EventDates;
+import org.hibernate.validator.constraints.NotEmpty;
 import org.joda.time.DateTime;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -16,15 +17,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -37,6 +36,33 @@ public class EventResource {
     private final static Logger log = LoggerFactory.getLogger(EventResource.class);
 
     public EventResource(EventDAO eventDAO) { this.eventDAO = eventDAO; }
+
+    @GET
+    @ExceptionMetered
+    @Timed
+    @Path("/event/get/{company_id}")
+    public Response getBasicEventData(@PathParam("company_id") String companyId,
+                                      @Context HttpHeaders httpHeaders) {
+        String requestId = httpHeaders.getHeaderString("x-transactionid");
+        String userId = httpHeaders.getHeaderString("x-user-uuid");
+        if (requestId == null) {
+            requestId = UUID.randomUUID().toString();
+        }
+        logInfoWithTransactionId(requestId, "got new request to fetch basic event informations");
+
+        if (userId == null || userId.isEmpty()) {
+            logInfoWithTransactionId(requestId, "no user id submitted");
+            throw new WebApplicationException("no user submitted", 401);
+        }
+
+        List<Event> events = eventDAO.getBasicEventInformationWithPermission(userId, companyId);
+
+        for (Event event : events) {
+            log.info(event.getEventId());
+        }
+        return Response.status(200).entity(events).build();
+
+    }
 
     @POST
     @ExceptionMetered

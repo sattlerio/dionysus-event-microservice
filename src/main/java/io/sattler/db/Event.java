@@ -8,8 +8,6 @@ import org.joda.time.DateTime;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
-import java.math.BigDecimal;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -95,9 +93,40 @@ public class Event {
     @JsonProperty("default_language_id")
     private String defaultLanguageId;
 
+    @JsonProperty("users")
+    @Valid
+    private Set<UserToEvent> users;
+
     @JsonCreator
     public Event() {
         this.eventId = UUID.randomUUID().toString();
+    }
+
+    public Event(Long id, String eventId, String eventName, String companyId,  String streetNumber,
+                 String street, String city, String countryId, String postalCode,
+                 Double latitude, Double longitude, String locationName,
+                 Boolean multiDayEvent,
+                 String defaultCurrencyId, Boolean multiLanguage, String defaultLanguageId,
+                 DateTime startDate, DateTime endDate) {
+        this.id = id;
+        this.eventId = eventId;
+        this.eventName = eventName;
+        this.companyId = companyId;
+        this.streetNumber = streetNumber;
+        this.street = street;
+        this.city = city;
+        this.countryId = countryId;
+        this.postalCode = postalCode;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.locationName = locationName;
+        this.multiDayEvent = multiDayEvent;
+        this.defaultCurrencyId = defaultCurrencyId;
+        this.multiLanguage = multiLanguage;
+        this.defaultLanguageId = defaultLanguageId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+
     }
 
     public Boolean getMultiDayEvent() {
@@ -174,6 +203,10 @@ public class Event {
 
     public String getDefaultLanguageId() {
         return defaultLanguageId;
+    }
+
+    public Set<EventLanguages> getEventLanguages() {
+        return eventLanguages;
     }
 
     /*

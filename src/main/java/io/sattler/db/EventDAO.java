@@ -7,7 +7,9 @@ import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 
-@RegisterMapper(EventMapper.class)
+import java.util.List;
+
+@RegisterMapper({EventMapper.class})
 public interface EventDAO {
 
     @GetGeneratedKeys(columnName = "id")
@@ -40,4 +42,9 @@ public interface EventDAO {
                                @Bind("start_date") DateTime startDate,
                                @Bind("end_date") DateTime endDate,
                                @Bind("name") String name);
+
+    @SqlQuery("SELECT e.* FROM events e LEFT OUTER JOIN users_2_event u2e ON u2e.event_id = e.id WHERE (u2e.user_id = :user_id OR NOT EXISTS (SELECT 1 FROM users_2_event u2e_check WHERE u2e_check.event_id = e.id)) AND e.company_id = :company_id  ORDER BY e.start_date DESC")
+    public List<Event> getBasicEventInformationWithPermission(@Bind("user_id") String userId,
+                                                             @Bind("company_id") String companyId);
+
 }
