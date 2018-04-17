@@ -5,9 +5,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
+import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
 
@@ -102,12 +105,12 @@ public class Event {
         this.eventId = UUID.randomUUID().toString();
     }
 
-    public Event(Long id, String eventId, String eventName, String companyId,  String streetNumber,
+    public Event(Long id, String eventId, String eventName, String companyId, String streetNumber,
                  String street, String city, String countryId, String postalCode,
                  Double latitude, Double longitude, String locationName,
                  Boolean multiDayEvent,
                  String defaultCurrencyId, Boolean multiLanguage, String defaultLanguageId,
-                 DateTime startDate, DateTime endDate) {
+                 Timestamp startDate, DateTime endDate) {
         this.id = id;
         this.eventId = eventId;
         this.eventName = eventName;
@@ -124,7 +127,7 @@ public class Event {
         this.defaultCurrencyId = defaultCurrencyId;
         this.multiLanguage = multiLanguage;
         this.defaultLanguageId = defaultLanguageId;
-        this.startDate = startDate;
+        this.startDate = new DateTime(startDate.getTime());
         this.endDate = endDate;
 
     }

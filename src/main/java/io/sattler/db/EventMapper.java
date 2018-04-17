@@ -29,7 +29,7 @@ public class EventMapper implements ResultSetMapper<Event> {
                 r.getString("default_currency_id"),
                 r.getBoolean("multi_language"),
                 r.getString("default_language_id"),
-                DateTime.parse(r.getDate("start_date").toString()),
+                r.getTimestamp("start_date"),
                 DateTime.parse(r.getDate("end_date").toString())
         );
     }
