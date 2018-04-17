@@ -80,6 +80,21 @@ public class Event {
     @Valid
     private Set<EventDates> eventDates;
 
+    @JsonProperty("event_languages")
+    @Valid
+    private Set<EventLanguages> eventLanguages;
+
+    @JsonProperty("default_currency_id")
+    @NotEmpty
+    private String defaultCurrencyId;
+
+    @JsonProperty("multi_language")
+    @NotNull
+    private Boolean multiLanguage;
+
+    @JsonProperty("default_language_id")
+    private String defaultLanguageId;
+
     @JsonCreator
     public Event() {
         this.eventId = UUID.randomUUID().toString();
@@ -147,6 +162,18 @@ public class Event {
 
     public String getStreetNumber() {
         return streetNumber;
+    }
+
+    public String getDefaultCurrencyId() {
+        return defaultCurrencyId;
+    }
+
+    public Boolean getMultiLanguage() {
+        return multiLanguage;
+    }
+
+    public String getDefaultLanguageId() {
+        return defaultLanguageId;
     }
 
     /*

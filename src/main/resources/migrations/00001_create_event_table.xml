@@ -59,11 +59,23 @@
                 <constraints nullable="false"/>
             </column>
 
-            <column name="start_date" type="TIMESTAMP WITH TIME ZONE">
+            <column name="default_currency_id" type="varchar(3)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="multi_language" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="default_language_id" type="varchar(3)">
                 <constraints nullable="true"/>
             </column>
 
-            <column name="end_date" type="TIMESTAMP WITH TIME ZONE">
+            <column name="start_date" type="TIMESTAMP WITHOUT TIME ZONE">
+                <constraints nullable="true"/>
+            </column>
+
+            <column name="end_date" type="TIMESTAMP WITHOUT TIME ZONE">
                 <constraints nullable="true"/>
             </column>
         </createTable>
@@ -90,6 +102,23 @@
             <column name="end_date" type="TIMESTAMP WITH TIME ZONE">
                 <constraints nullable="false"/>
             </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="3" author="sattlerio">
+        <createTable tableName="event_languages">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="event_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_eventlanguage_events" references="events(id)"/>
+            </column>
+
+            <column name="language_id" type="varchar(3)">
+                <constraints nullable="false"/>
+            </column>
+
         </createTable>
     </changeSet>
 </databaseChangeLog>
