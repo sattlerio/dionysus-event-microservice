@@ -14,4 +14,13 @@ public class UserToEvent {
 
     @JsonCreator
     public UserToEvent() {}
+
+    public UserToEvent(String userId) {
+        this.userId = userId;
+    }
+
+    public UserToEvent(Long eventId, String userId) {
+        this.eventId = eventId;
+        this.userId = userId;
+    }
 }

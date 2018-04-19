@@ -32,4 +32,8 @@ public class EventLanguages {
 
     @JsonCreator
     public EventLanguages() {}
+
+    public EventLanguages(String languageId) {
+        this.languageId = languageId;
+    }
 }

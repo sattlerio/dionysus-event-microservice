@@ -9,6 +9,7 @@ import io.sattler.client.GuardianClient;
 import io.sattler.db.Event;
 import io.sattler.db.EventDAO;
 import io.sattler.db.EventDates;
+import io.sattler.db.EventLanguages;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.joda.time.DateTime;
 import org.json.JSONObject;
@@ -22,10 +23,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
@@ -36,6 +34,56 @@ public class EventResource {
     private final static Logger log = LoggerFactory.getLogger(EventResource.class);
 
     public EventResource(EventDAO eventDAO) { this.eventDAO = eventDAO; }
+
+    @GET
+    @ExceptionMetered
+    @Timed
+    @Path("/event/get/{event_id}/{company_id}")
+    public Response getEventById(@PathParam("event_id") String eventId,
+                                 @PathParam("company_id") String companyId,
+                                 @Context HttpHeaders httpHeaders) {
+        String requestId = httpHeaders.getHeaderString("x-transactionid");
+        String userId = httpHeaders.getHeaderString("x-user-uuid");
+        if (requestId == null) {
+            requestId = UUID.randomUUID().toString();
+        }
+
+        logInfoWithTransactionId(requestId, "got new request to fetch basic event informations");
+
+        if (userId == null || userId.isEmpty()) {
+            logInfoWithTransactionId(requestId, "no user id submitted");
+            throw new WebApplicationException("no user submitted", 401);
+        }
+        String host = System.getenv("GUARDIAN_URL") + userId + '/' + companyId;
+        GuardianClient client = new GuardianClient(host, requestId);
+
+        try {
+            Event event = null;
+            Boolean permission = client.getUserPermission(1);
+            if (permission) {
+                event = eventDAO.fetchEventById(companyId, eventId);
+            } else {
+                event = eventDAO.fetchEventByIdWithPermission(userId,
+                        companyId, eventId);
+            }
+
+            if (event == null) {
+                logInfoWithTransactionId(requestId, "event does not exist abort with status 404");
+                throw new WebApplicationException("the event does not exist", 404);
+            }
+            Set<EventLanguages> eventLanguages = eventDAO.fetchLanguagesFromEvent(event.getId());
+            if (eventLanguages != null) {
+                event.setEventLanguages(eventLanguages);
+            }
+            return Response.status(200).entity(event).build();
+
+        } catch (UnirestException e) {
+            logInfoWithTransactionId(requestId, "not possible to communicate with Guardian abort with 500");
+            log.error(e.toString());
+            log.error(e.getMessage());
+            throw new WebApplicationException("permission error", 500);
+        }
+    }
 
     @GET
     @ExceptionMetered
@@ -54,10 +102,25 @@ public class EventResource {
             logInfoWithTransactionId(requestId, "no user id submitted");
             throw new WebApplicationException("no user submitted", 401);
         }
+        String host = System.getenv("GUARDIAN_URL") + userId + '/' + companyId;
+        GuardianClient client = new GuardianClient(host, requestId);
 
-        List<Event> events = eventDAO.getBasicEventInformationWithPermission(userId, companyId);
-
-        return Response.status(200).entity(events).build();
+        try {
+            if (client.getUserPermission(1)) {
+                logInfoWithTransactionId(requestId, "user is a manager give them full access");
+                List<Event> events = eventDAO.getBasicEventInformation(companyId);
+                return Response.status(200).entity(events).build();
+            } else {
+                logInfoWithTransactionId(requestId, "user is not a manager dont give them full access");
+                List<Event> events = eventDAO.getBasicEventInformationWithPermission(userId, companyId);
+                return Response.status(200).entity(events).build();
+            }
+        } catch (UnirestException e) {
+            log.error(e.toString());
+            log.error(e.getMessage());
+            logInfoWithTransactionId(requestId, "not possible to get permission from guardian");
+            throw new WebApplicationException("there was an internal server error", 500);
+        }
     }
 
     @POST
@@ -83,11 +146,6 @@ public class EventResource {
         logInfoWithTransactionId(requestId, "trying to validate authorization from guardian");
 
         String host = System.getenv("GUARDIAN_URL") + userId + '/' + event.getCompanyId();
-
-        log.info(event.getCompanyId());
-        log.info(host);
-        log.info(event.getStartDate().toString());
-        log.info(event.getEndDate().toString());
 
         GuardianClient client = new GuardianClient(host, requestId);
 

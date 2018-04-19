@@ -11,6 +11,7 @@ import org.joda.time.LocalDateTime;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -129,7 +130,6 @@ public class Event {
         this.defaultLanguageId = defaultLanguageId;
         this.startDate = new DateTime(startDate.getTime());
         this.endDate = endDate;
-
     }
 
     public Boolean getMultiDayEvent() {
@@ -210,6 +210,10 @@ public class Event {
 
     public Set<EventLanguages> getEventLanguages() {
         return eventLanguages;
+    }
+
+    public void setEventLanguages(Set<EventLanguages> eventLanguages) {
+        this.eventLanguages = eventLanguages;
     }
 
     /*
