@@ -101,6 +101,10 @@ public class Event {
     @Valid
     private Set<UserToEvent> users;
 
+    @JsonProperty("currencies")
+    @Valid
+    private Set<EventCurrencies> eventCurrencies;
+
     @JsonCreator
     public Event() {
         this.eventId = UUID.randomUUID().toString();
@@ -214,6 +218,14 @@ public class Event {
 
     public void setEventLanguages(Set<EventLanguages> eventLanguages) {
         this.eventLanguages = eventLanguages;
+    }
+
+    public Set<EventCurrencies> getEventCurrencies() {
+        return eventCurrencies;
+    }
+
+    public void setEventCurrencies(Set<EventCurrencies> eventCurrencies) {
+        this.eventCurrencies = eventCurrencies;
     }
 
     /*

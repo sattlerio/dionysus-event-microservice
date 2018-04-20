@@ -1,17 +1,18 @@
 package io.sattler.resources;
 
 import com.codahale.metrics.annotation.ExceptionMetered;
+import com.codahale.metrics.annotation.Metered;
 import com.codahale.metrics.annotation.Timed;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.sattler.api.EventBasicEdit;
 import io.sattler.api.EventCreation;
+import io.sattler.api.EventDetailsEdit;
 import io.sattler.client.GuardianClient;
-import io.sattler.db.Event;
-import io.sattler.db.EventDAO;
-import io.sattler.db.EventDates;
-import io.sattler.db.EventLanguages;
+import io.sattler.db.*;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.joda.time.DateTime;
+import org.json.HTTP;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +76,12 @@ public class EventResource {
             if (eventLanguages != null) {
                 event.setEventLanguages(eventLanguages);
             }
+
+            Set<EventCurrencies> eventCurrencies = eventDAO.fetchCurrenciesFromEvent(event.getId());
+            if (eventCurrencies != null) {
+                event.setEventCurrencies(eventCurrencies);
+            }
+
             return Response.status(200).entity(event).build();
 
         } catch (UnirestException e) {
@@ -121,6 +128,172 @@ public class EventResource {
             logInfoWithTransactionId(requestId, "not possible to get permission from guardian");
             throw new WebApplicationException("there was an internal server error", 500);
         }
+    }
+
+    @PUT
+    @ExceptionMetered
+    @Metered
+    @Path("/event/edit/basic/{event_id}/{company_id}")
+    public Response editEventLocation(@NotNull EventBasicEdit evenEdit,
+                                      @PathParam("event_id") String eventId,
+                                      @PathParam("company_id") String companyId,
+                                      @Context HttpHeaders httpHeaders) {
+        String requestId = httpHeaders.getHeaderString("x-transactionid");
+        String userId = httpHeaders.getHeaderString("x-user-uuid");
+
+        logInfoWithTransactionId(requestId, "got new request to update event basic information and location");
+
+        if (requestId == null) {
+            requestId = UUID.randomUUID().toString();
+        }
+
+        if (userId == null || userId.isEmpty()) {
+            logInfoWithTransactionId(requestId, "no user id submitted");
+            throw new WebApplicationException("not authorized", 401);
+        }
+
+        logInfoWithTransactionId(requestId, "trying to validate authorization from guardian");
+
+        String host = System.getenv("GUARDIAN_URL") + userId + '/' + companyId;
+
+        GuardianClient client = new GuardianClient(host, requestId);
+
+        Event event;
+
+        try {
+
+            if (!client.getUserPermission(3)) {
+                logInfoWithTransactionId(requestId,"user has not the required permission");
+                throw new WebApplicationException("not authorized", 401);
+            }
+            event = eventDAO.fetchEventById(companyId, eventId);
+        } catch (UnirestException e) {
+            logInfoWithTransactionId(requestId, e.toString());
+            throw new WebApplicationException("not possible to verify user permission", 401);
+        }
+        if (event == null) {
+            throw new WebApplicationException("event does not exist", 404);
+        }
+
+        try {
+            if (evenEdit.getEventLocation() == null) {
+                logInfoWithTransactionId(requestId, "updating event without event location");
+                eventDAO.updateEventBasicDetails(evenEdit.getEventName(), evenEdit.getVenue(),
+                        companyId, eventId);
+            } else {
+                logInfoWithTransactionId(requestId, "updating event with event location");
+                eventDAO.updateEventBasicDetailsWithLocation(evenEdit.getEventName(),
+                        evenEdit.getVenue(), evenEdit.getEventLocation().getStreetNumber().get(), evenEdit.getEventLocation().getStreet(),
+                        evenEdit.getEventLocation().getCity(), evenEdit.getEventLocation().getCountryId(),
+                        evenEdit.getEventLocation().getZip(), evenEdit.getEventLocation().getLatitude(),
+                        evenEdit.getEventLocation().getLongitude(), companyId, eventId);
+            }
+            JSONObject positiveResponse = new JSONObject().put("status", "OK")
+                    .put("status_code", 200)
+                    .put("message", "successfully updated event")
+                    .put("transaction_id", requestId);
+            return Response.status(200).entity(positiveResponse.toString()).build();
+        } catch (Exception e) {
+            logInfoWithTransactionId(requestId, "not possible to update event in database");
+            log.warn(e.getMessage());
+            throw new WebApplicationException("not possible to update event", 500);
+        }
+    }
+
+    @PUT
+    @ExceptionMetered
+    @Metered
+    @Path("/event/edit/detail/{event_id}/{company_id}")
+    public Response editEventDetails(@NotNull EventDetailsEdit eventDetails,
+                                     @PathParam("event_id") String eventId,
+                                     @PathParam("company_id") String companyId,
+                                     @Context HttpHeaders httpHeaders) {
+
+        String requestId = httpHeaders.getHeaderString("x-transactionid");
+        String userId = httpHeaders.getHeaderString("x-user-uuid");
+
+        logInfoWithTransactionId(requestId, "got new request to update event details");
+
+        if (requestId == null) {
+            requestId = UUID.randomUUID().toString();
+        }
+
+        if (userId == null || userId.isEmpty()) {
+            logInfoWithTransactionId(requestId, "no user id submitted");
+            throw new WebApplicationException("not authorized", 401);
+        }
+
+        logInfoWithTransactionId(requestId, "trying to validate authorization from guardian");
+
+        String host = System.getenv("GUARDIAN_URL") + userId + '/' + companyId;
+
+        GuardianClient client = new GuardianClient(host, requestId);
+
+        Event event;
+        try {
+            if (!client.getUserPermission(3)) {
+                logInfoWithTransactionId(requestId,"user has not the required permission");
+                throw new WebApplicationException("not authorized", 401);
+            }
+            event = eventDAO.fetchEventById(companyId, eventId);
+        } catch (UnirestException e) {
+            logInfoWithTransactionId(requestId, e.toString());
+            logInfoWithTransactionId(requestId, "not possible to verify user permission");
+            throw new WebApplicationException("not possible to verify user permission", 401);
+        }
+        if (event == null) {
+            throw new WebApplicationException("event does not exist", 404);
+        }
+
+        log.info("-----");
+        log.info(eventDetails.getDefaultLanguageId());
+        log.info(eventDetails.getCurrencies().toString());
+        log.info(eventDetails.getLanguages().toString());
+        log.info(eventDetails.getMultiLanguage().toString());
+
+        if(eventDetails.getMultiLanguage()) {
+            if(!event.getMultiLanguage()) {
+                eventDAO.updateEventMultiLanguage(true, companyId, eventId);
+            }
+            if (eventDetails.getDefaultLanguageId() != event.getDefaultLanguageId()) {
+                eventDAO.updateEventDefaultLanguage(eventDetails.getDefaultLanguageId(),
+                        companyId, eventId);
+            }
+            eventDAO.removeLanguagesFromEvent(eventId, userId);
+
+            for (EventLanguages language : eventDetails.getLanguages()) {
+                if (!eventDetails.getDefaultLanguageId().equals(language.getLanguageId())) {
+                    eventDAO.createEventLanguage(event.getId(), language.getLanguageId());
+                }
+            }
+
+        } else {
+            eventDAO.removeLanguagesFromEvent(eventId, userId);
+            if(event.getMultiLanguage()) {
+                eventDAO.updateEventMultiLanguage(false, companyId, eventId);
+            }
+        }
+
+        try {
+            eventDAO.removeCurrenciesFromEvent(eventId, userId);
+            for (EventCurrencies currency : eventDetails.getCurrencies()) {
+                Long eventCurrencyId = eventDAO.createEventCurrency(event.getId(), currency.getCurrencyId());
+                if(eventCurrencyId == null) {
+                    throw new WebApplicationException("not possible to insert event currencies", 500);
+                }
+            }
+        } catch (Exception e) {
+            logInfoWithTransactionId(requestId, "not possible to update database");
+            log.warn(e.toString());
+            log.warn(e.getMessage());
+            throw new WebApplicationException("not possible to communicate with database", 500);
+        }
+
+        JSONObject response = new JSONObject().put("STATUS", "OK")
+                .put("status_code", 200)
+                .put("message", "successfully updated event details")
+                .put("transaction_id", requestId);
+        return Response.status(200).entity(response.toString()).build();
     }
 
     @POST
