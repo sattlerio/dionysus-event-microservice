@@ -3,16 +3,14 @@ package io.sattler.resources;
 import com.codahale.metrics.annotation.ExceptionMetered;
 import com.codahale.metrics.annotation.Metered;
 import com.codahale.metrics.annotation.Timed;
-import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import io.sattler.api.EventBasicEdit;
 import io.sattler.api.EventCreation;
+import io.sattler.api.EventDateEdit;
 import io.sattler.api.EventDetailsEdit;
 import io.sattler.client.GuardianClient;
 import io.sattler.db.*;
-import org.hibernate.validator.constraints.NotEmpty;
-import org.joda.time.DateTime;
-import org.json.HTTP;
+import org.joda.time.DateTimeZone;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +22,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.sql.Timestamp;
 import java.util.*;
 
 @Path("/")
@@ -67,6 +66,10 @@ public class EventResource {
                 event = eventDAO.fetchEventByIdWithPermission(userId,
                         companyId, eventId);
             }
+            log.info("----------------");
+            log.info(event.getStartDate().toString());
+            log.info(event.getEndDate().toString());
+            log.info("----------------");
 
             if (event == null) {
                 logInfoWithTransactionId(requestId, "event does not exist abort with status 404");
@@ -127,6 +130,77 @@ public class EventResource {
             log.error(e.getMessage());
             logInfoWithTransactionId(requestId, "not possible to get permission from guardian");
             throw new WebApplicationException("there was an internal server error", 500);
+        }
+    }
+
+    @PUT
+    @ExceptionMetered
+    @Timed
+    @Path("/event/edit/date/{event_id}/{company_id}")
+    public Response editEventDates(@NotNull @Valid EventDateEdit eventDateEdit,
+                                   @PathParam("event_id") String eventId,
+                                   @PathParam("company_id") String companyId,
+                                   @Context HttpHeaders httpHeaders) {
+
+        String requestId = httpHeaders.getHeaderString("x-transactionid");
+        String userId = httpHeaders.getHeaderString("x-user-uuid");
+
+        logInfoWithTransactionId(requestId, "got new request to update event dates");
+
+        if (requestId == null) {
+            requestId = UUID.randomUUID().toString();
+        }
+
+        if (userId == null || userId.isEmpty()) {
+            logInfoWithTransactionId(requestId, "no user id submitted");
+            throw new WebApplicationException("not authorized", 401);
+        }
+
+        logInfoWithTransactionId(requestId, "trying to validate authorization from guardian");
+
+        String host = System.getenv("GUARDIAN_URL") + userId + '/' + companyId;
+
+        GuardianClient client = new GuardianClient(host, requestId);
+
+        Event event;
+
+        try {
+
+            if (!client.getUserPermission(3)) {
+                logInfoWithTransactionId(requestId,"required permission is 3 for product manager");
+                throw new WebApplicationException("not authorized", 401);
+            }
+            event = eventDAO.fetchEventById(companyId, eventId);
+        } catch (UnirestException e) {
+            logInfoWithTransactionId(requestId, e.toString());
+            throw new WebApplicationException("not possible to verify user permission", 401);
+        }
+        if (event == null) {
+            throw new WebApplicationException("event does not exist", 404);
+        }
+        if (eventDateEdit.getMultiDayEvent()) {
+            logInfoWithTransactionId(requestId, "method for multiple days are not implemented :(");
+            throw new WebApplicationException("multi day events are  not implemented yet", Response.Status.NOT_IMPLEMENTED.getStatusCode());
+        }
+
+        try {
+            log.info(eventDateEdit.getEndDate().toString());
+            log.info(eventDateEdit.getStartDate().toString());
+           logInfoWithTransactionId(requestId, "everything is good trying now to insert update into database");
+           eventDAO.updateEventOneTimeDates(eventDateEdit.getMultiDayEvent(),
+                   new Timestamp(eventDateEdit.getStartDate().toDateTime(DateTimeZone.UTC).getMillis()),
+                   new Timestamp(eventDateEdit.getEndDate().toDateTime(DateTimeZone.UTC).getMillis()),
+                   companyId, eventId);
+
+           JSONObject response = new JSONObject().put("status", "OK").put("message", "sussessfully updated event")
+                   .put("status_code", 200).put("transaction_id", requestId);
+
+           return Response.status(200).entity(response.toString()).build();
+        } catch (Exception e) {
+            logInfoWithTransactionId(requestId, "not possible to update event abort transaction");
+            log.warn(e.toString());
+            log.warn(e.getMessage());
+            throw new WebApplicationException("error while trying to update event", 400);
         }
     }
 
@@ -244,12 +318,6 @@ public class EventResource {
         if (event == null) {
             throw new WebApplicationException("event does not exist", 404);
         }
-
-        log.info("-----");
-        log.info(eventDetails.getDefaultLanguageId());
-        log.info(eventDetails.getCurrencies().toString());
-        log.info(eventDetails.getLanguages().toString());
-        log.info(eventDetails.getMultiLanguage().toString());
 
         if(eventDetails.getMultiLanguage()) {
             if(!event.getMultiLanguage()) {

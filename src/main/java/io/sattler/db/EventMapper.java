@@ -31,7 +31,7 @@ public class EventMapper implements ResultSetMapper<Event> {
                 r.getBoolean("multi_language"),
                 r.getString("default_language_id"),
                 r.getTimestamp("start_date"),
-                DateTime.parse(r.getDate("end_date").toString())
+                r.getTimestamp("end_date")
         );
     }
 

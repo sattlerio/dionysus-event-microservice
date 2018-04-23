@@ -5,11 +5,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
@@ -115,7 +117,7 @@ public class Event {
                  Double latitude, Double longitude, String locationName,
                  Boolean multiDayEvent,
                  String defaultCurrencyId, Boolean multiLanguage, String defaultLanguageId,
-                 Timestamp startDate, DateTime endDate) {
+                 Timestamp startDate, Timestamp endDate) {
         this.id = id;
         this.eventId = eventId;
         this.eventName = eventName;
@@ -133,19 +135,19 @@ public class Event {
         this.multiLanguage = multiLanguage;
         this.defaultLanguageId = defaultLanguageId;
         this.startDate = new DateTime(startDate.getTime());
-        this.endDate = endDate;
+        this.endDate = new DateTime(endDate.getTime());
     }
 
     public Boolean getMultiDayEvent() {
         return multiDayEvent;
     }
 
-    public DateTime getStartDate() {
-        return startDate;
+    public Timestamp getStartDate() {
+        return new Timestamp(this.startDate.toDateTime(DateTimeZone.UTC).getMillis());
     }
 
-    public DateTime getEndDate() {
-        return endDate;
+    public Timestamp getEndDate() {
+        return new Timestamp(this.endDate.toDateTime(DateTimeZone.UTC).getMillis());
     }
 
     public Set<EventDates> getEventDates() {

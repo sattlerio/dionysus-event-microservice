@@ -7,6 +7,7 @@ import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
 
@@ -114,5 +115,12 @@ public interface EventDAO {
                                                     @Bind("longitude") Double longitude,
                                                     @Bind("company_id") String companyId,
                                                     @Bind("event_uuid") String eventId);
+
+    @SqlUpdate("UPDATE events SET multiday_event = :multiday_event, start_date = :start_date, end_date = :end_date WHERE company_id = :company_id AND event_uuid = :event_uuid")
+    public void updateEventOneTimeDates(@Bind("multiday_event") Boolean multiDayEvent,
+                                        @Bind("start_date") Timestamp startDate,
+                                        @Bind("end_date") Timestamp endDate,
+                                        @Bind("company_id") String companyId,
+                                        @Bind("event_uuid") String eventId);
 
 }
