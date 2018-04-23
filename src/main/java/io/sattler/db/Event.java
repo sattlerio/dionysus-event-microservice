@@ -24,6 +24,9 @@ public class Event {
     @JsonProperty("event_id")
     private String eventId;
 
+    @JsonProperty("active")
+    private Boolean active;
+
     @NotEmpty
     @JsonProperty("event_name")
     private String eventName;
@@ -136,6 +139,7 @@ public class Event {
         this.defaultLanguageId = defaultLanguageId;
         this.startDate = new DateTime(startDate.getTime());
         this.endDate = new DateTime(endDate.getTime());
+        this.active = false;
     }
 
     public Boolean getMultiDayEvent() {

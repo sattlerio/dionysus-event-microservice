@@ -78,6 +78,10 @@
             <column name="end_date" type="TIMESTAMP WITHOUT TIME ZONE">
                 <constraints nullable="true"/>
             </column>
+
+            <column name="active" defaultValueBoolean="false" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
     </changeSet>
 
